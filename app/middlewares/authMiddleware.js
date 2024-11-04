@@ -11,15 +11,22 @@ const authMiddleware = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+
+      const user = await User.findByPk(decoded.id, {
+        attributes: { exclude: ['password'] },
+      });
+
+      if (!user) {
+        return res.status(401).json({ message: 'Usuário não encontrado' });
+      }
+
+      req.user = user;
       next();
     } catch (error) {
-      res.status(401).json({ message: 'Não autorizado, token inválido' });
+      return res.status(401).json({ message: 'Não autorizado, token inválido' });
     }
-  }
-
-  if (!token) {
-    res.status(401).json({ message: 'Não autorizado, token não encontrado' });
+  } else {
+    return res.status(401).json({ message: 'Não autorizado, token não encontrado' });
   }
 };
 

@@ -1,6 +1,7 @@
 const User = require('../model/userModel');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const bcrypt = require('bcrypt');
 
 dotenv.config();
 
@@ -9,30 +10,30 @@ const generateToken = (id) => {
 };
 
 exports.register = async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password, crn, name } = req.body;
 
   try {
-    const userExists = await User.findOne({ where: { username } });
+    const userExists = await User.findOne({ where: { email } });
     if (userExists) return res.status(400).json({ message: 'Usuário já existe' });
 
-    const user = await User.create({ username, password });
+    const user = await User.create({ name, email, password, crn  });
     res.status(201).json({ token: generateToken(user.id) });
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao registrar usuário' });
+    res.status(500).json({ message: `Erro ao registrar usuário` });
   }
 };
 
 exports.login = async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ where: { username } });
-    if (user && (await user.matchPassword(password))) {
-      res.json({ token: generateToken(user.id) });
+    const user = await User.findOne({ where: { email } });
+    if (user && (await bcrypt.compare(password, user.password))) {
+      res.status(200).json({ token: generateToken(user.id) });
     } else {
-      res.status(401).json({ message: 'Credenciais inválidas' });
+      res.status(401).json({ message: 'Credenciais inválidas'});
     }
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao fazer login' });
+    res.status(500).json({ message: `Erro ao fazer login` });
   }
 };
